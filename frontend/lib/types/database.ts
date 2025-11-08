@@ -6,6 +6,7 @@ export type UserRole = 'student' | 'teacher';
 export type EnrollmentStatus = 'active' | 'completed' | 'reviewed';
 export type VoteType = 'upvote' | 'downvote';
 export type TransactionType = 'earned' | 'spent' | 'initial' | 'mentor_reward';
+export type SubmissionStatus = 'submitted' | 'reviewed';
 
 // ============================================
 // PROFILE
@@ -134,6 +135,26 @@ export interface TokenTransaction {
 }
 
 // ============================================
+// SUBMISSION (Student Work Upload)
+// ============================================
+export interface Submission {
+  id: string;
+  enrollment_id: string;
+  student_id: string;
+  homework_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  status: SubmissionStatus;
+  submitted_at: string;
+  reviewed_at?: string;
+  // Joined data
+  student?: Profile;
+  homework?: Homework;
+  enrollment?: Enrollment;
+}
+
+// ============================================
 // HELPER TYPES
 // ============================================
 
@@ -150,4 +171,10 @@ export interface QuestionWithDetails extends Question {
 export interface EnrollmentWithDetails extends Enrollment {
   student: Profile;
   homework: HomeworkWithTeacher;
+}
+
+export interface SubmissionWithDetails extends Submission {
+  student: Profile;
+  homework: Homework;
+  enrollment: Enrollment;
 }

@@ -8,9 +8,11 @@ import type {
   Review,
   Vote,
   TokenTransaction,
+  Submission,
   HomeworkWithTeacher,
   QuestionWithDetails,
   EnrollmentWithDetails,
+  SubmissionWithDetails,
 } from '@/lib/types/database';
 
 const supabase = createSupabaseBrowserClient();
@@ -497,4 +499,98 @@ export async function getAvailableHomeworks() {
   console.log('Filtered available homeworks:', availableHomeworks);
 
   return availableHomeworks;
+}
+
+// ============================================
+// SUBMISSION QUERIES
+// ============================================
+
+export async function getSubmissions(filters?: {
+  studentId?: string;
+  homeworkId?: string;
+  enrollmentId?: string;
+  status?: 'submitted' | 'reviewed';
+}) {
+  let query = supabase
+    .from('submissions')
+    .select(`
+      *,
+      student:profiles!submissions_student_id_fkey(*),
+      homework:homeworks(*),
+      enrollment:enrollments(*)
+    `)
+    .order('submitted_at', { ascending: false });
+
+  if (filters?.studentId) {
+    query = query.eq('student_id', filters.studentId);
+  }
+  if (filters?.homeworkId) {
+    query = query.eq('homework_id', filters.homeworkId);
+  }
+  if (filters?.enrollmentId) {
+    query = query.eq('enrollment_id', filters.enrollmentId);
+  }
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as SubmissionWithDetails[];
+}
+
+export async function createSubmission(submission: {
+  enrollment_id: string;
+  student_id: string;
+  homework_id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+}) {
+  const { data, error } = await supabase
+    .from('submissions')
+    .insert([{
+      ...submission,
+      status: 'submitted',
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Submission;
+}
+
+export async function updateSubmissionStatus(
+  submissionId: string,
+  status: 'submitted' | 'reviewed'
+) {
+  const { data, error } = await supabase
+    .from('submissions')
+    .update({
+      status,
+      reviewed_at: status === 'reviewed' ? new Date().toISOString() : null
+    })
+    .eq('id', submissionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Submission;
+}
+
+// Get unreviewed submissions for a teacher's homeworks
+export async function getUnreviewedSubmissions(teacherId: string) {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(`
+      *,
+      student:profiles!submissions_student_id_fkey(*),
+      homework:homeworks!inner(*)
+    `)
+    .eq('homework.teacher_id', teacherId)
+    .eq('status', 'submitted')
+    .order('submitted_at', { ascending: false });
+
+  if (error) throw error;
+  return data as SubmissionWithDetails[];
 }
