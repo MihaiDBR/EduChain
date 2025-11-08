@@ -1,11 +1,12 @@
 'use client';
 
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,6 +26,16 @@ export default function DashboardPage() {
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           Authorized wallet: <span className="font-mono">{address}</span>
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            disconnect();
+            router.replace('/');
+          }}
+          className="mt-6 inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85"
+        >
+          Disconnect
+        </button>
       </main>
     </div>
   );
