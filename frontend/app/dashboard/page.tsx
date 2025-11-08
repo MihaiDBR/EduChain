@@ -50,6 +50,17 @@ export default function DashboardPage() {
     loadProfile();
   }, [address, isConnected, router]);
 
+  // Redirect based on role
+  useEffect(() => {
+    if (!profile) return;
+
+    if (profile.role === 'teacher') {
+      router.push('/dashboard/teacher');
+    } else if (profile.role === 'student') {
+      router.push('/dashboard/student');
+    }
+  }, [profile, router]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -62,16 +73,10 @@ export default function DashboardPage() {
     return null; // Will redirect to setup
   }
 
-  // Redirect based on role
-  if (profile.role === 'teacher') {
-    router.push('/dashboard/teacher');
-    return null;
-  }
-
-  if (profile.role === 'student') {
-    router.push('/dashboard/student');
-    return null;
-  }
-
-  return null;
+  // Show loading while redirecting
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    </div>
+  );
 }

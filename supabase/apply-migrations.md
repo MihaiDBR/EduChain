@@ -1,14 +1,19 @@
-# Apply Submissions Migration
+# Apply Database Migrations
 
-To apply the new submissions table migration, follow these steps:
+To apply all new migrations, follow these steps:
 
 1. **Open Supabase Dashboard**: Go to your Supabase project dashboard
 
 2. **SQL Editor**: Navigate to the SQL Editor section
 
-3. **Run Migration**: Copy and paste the content from `migrations/003_add_submissions.sql` and execute it
+3. **Run Migrations in Order**:
+   - First: `migrations/003_add_submissions.sql` (Submissions table)
+   - Second: `migrations/004_add_enrollment_fields.sql` (Enrollment fields)
+   - Third: `migrations/005_add_task_resources.sql` (Task resources + deadline field)
 
-4. **Create Storage Bucket**:
+4. **Create Storage Buckets**:
+
+   **Bucket 1: submissions** (for student file uploads)
    - Go to Storage section
    - Create a new bucket named `submissions`
    - Make it public
@@ -36,7 +41,33 @@ ON storage.objects FOR DELETE
 USING (bucket_id = 'submissions');
 ```
 
-5. **Verify**: Check that the `submissions` table has been created successfully
+   **Bucket 2: task-resources** (for teacher resource uploads)
+   - Create a new bucket named `task-resources`
+   - Make it public
+   - Add the following policies:
+
+```sql
+-- Allow public SELECT access
+CREATE POLICY "Public Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'task-resources');
+
+-- Allow teachers to upload
+CREATE POLICY "Teachers can upload"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'task-resources');
+
+-- Allow teachers to delete
+CREATE POLICY "Teachers can delete"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'task-resources');
+```
+
+5. **Verify**: Check that all tables have been created successfully:
+   - `submissions`
+   - `task_resources`
+   - Check that `homeworks` has `deadline` field
+   - Check that `enrollments` supports 'missed' status
 
 ## What was changed:
 

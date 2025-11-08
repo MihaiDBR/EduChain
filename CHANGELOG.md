@@ -123,3 +123,53 @@ To apply these changes:
 3. Click "View all" → Submissions page
 4. Filter by status (All/Unreviewed/Reviewed)
 5. Download files, mark as reviewed
+
+---
+
+## Additional Features (from user modifications)
+
+### Task Resources (Teacher uploads)
+- Teachers can upload resources/materials for tasks
+- Students can view and download these resources
+- New `task_resources` table created
+
+### Deadline System
+- Homework now has `deadline` field
+- Students see deadline warnings:
+  - Orange warning when < 24h remaining
+  - Red alert when deadline passed
+- New enrollment status: `missed` (for deadline violations)
+
+### Enhanced Database Schema
+- **New Tables**:
+  - `submissions` - Student file uploads
+  - `task_resources` - Teacher resource uploads
+
+- **Updated Tables**:
+  - `homeworks` - Added `deadline` field
+  - `enrollments` - Added `submission_text`, `completed_at`, `review_score`, `review_comment`, and `missed` status
+
+- **Storage Buckets**:
+  - `submissions` - For student work
+  - `task-resources` - For teacher materials
+
+### Complete Feature List
+
+**Student Capabilities**:
+- ✅ Upload files in any format
+- ✅ Upload multiple files per task
+- ✅ Download teacher resources
+- ✅ See deadline warnings
+- ✅ View submission status
+- ✅ Submit text solutions
+- ✅ Auto-redirect after login
+
+**Teacher Capabilities**:
+- ✅ View all student submissions
+- ✅ Filter submissions by status
+- ✅ Download student files
+- ✅ Mark work as reviewed
+- ✅ Upload task resources
+- ✅ Set task deadlines
+- ✅ Track unreviewed work count
+- ✅ Auto-redirect after login

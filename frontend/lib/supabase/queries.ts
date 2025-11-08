@@ -526,32 +526,44 @@ export async function getSubmissions(filters?: {
   enrollmentId?: string;
   status?: 'submitted' | 'reviewed';
 }) {
-  let query = supabase
-    .from('submissions')
-    .select(`
-      *,
-      student:profiles!submissions_student_id_fkey(*),
-      homework:homeworks(*),
-      enrollment:enrollments(*)
-    `)
-    .order('submitted_at', { ascending: false });
+  try {
+    let query = supabase
+      .from('submissions')
+      .select(`
+        *,
+        student:profiles!submissions_student_id_fkey(*),
+        homework:homeworks(*),
+        enrollment:enrollments(*)
+      `)
+      .order('submitted_at', { ascending: false });
 
-  if (filters?.studentId) {
-    query = query.eq('student_id', filters.studentId);
-  }
-  if (filters?.homeworkId) {
-    query = query.eq('homework_id', filters.homeworkId);
-  }
-  if (filters?.enrollmentId) {
-    query = query.eq('enrollment_id', filters.enrollmentId);
-  }
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
+    if (filters?.studentId) {
+      query = query.eq('student_id', filters.studentId);
+    }
+    if (filters?.homeworkId) {
+      query = query.eq('homework_id', filters.homeworkId);
+    }
+    if (filters?.enrollmentId) {
+      query = query.eq('enrollment_id', filters.enrollmentId);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as SubmissionWithDetails[];
+    const { data, error } = await query;
+
+    // If table doesn't exist yet, return empty array
+    if (error && error.code === '42P01') {
+      console.warn('submissions table does not exist yet. Please run migration 003.');
+      return [];
+    }
+
+    if (error) throw error;
+    return data as SubmissionWithDetails[];
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    return [];
+  }
 }
 
 export async function createSubmission(submission: {
@@ -611,32 +623,44 @@ export async function getUnreviewedSubmissions(teacherId: string) {
 }
 
 // ============================================
-// TASK RESOURCE QUERIES (Teacher Resources)
+// TASK RESOURCE QUERIES
 // ============================================
 
 export async function getTaskResources(filters?: {
   homeworkId?: string;
   teacherId?: string;
 }) {
-  let query = supabase
-    .from('task_resources')
-    .select(`
-      *,
-      homework:homeworks(*),
-      teacher:profiles!task_resources_teacher_id_fkey(*)
-    `)
-    .order('uploaded_at', { ascending: false });
+  try {
+    let query = supabase
+      .from('task_resources')
+      .select(`
+        *,
+        homework:homeworks(*),
+        teacher:profiles!task_resources_teacher_id_fkey(*)
+      `)
+      .order('uploaded_at', { ascending: false });
 
-  if (filters?.homeworkId) {
-    query = query.eq('homework_id', filters.homeworkId);
-  }
-  if (filters?.teacherId) {
-    query = query.eq('teacher_id', filters.teacherId);
-  }
+    if (filters?.homeworkId) {
+      query = query.eq('homework_id', filters.homeworkId);
+    }
+    if (filters?.teacherId) {
+      query = query.eq('teacher_id', filters.teacherId);
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as TaskResourceWithDetails[];
+    const { data, error } = await query;
+
+    // If table doesn't exist yet, return empty array
+    if (error && error.code === '42P01') {
+      console.warn('task_resources table does not exist yet. Please run migration 005.');
+      return [];
+    }
+
+    if (error) throw error;
+    return data as TaskResourceWithDetails[];
+  } catch (error) {
+    console.error('Error fetching task resources:', error);
+    return [];
+  }
 }
 
 export async function createTaskResource(resource: {
