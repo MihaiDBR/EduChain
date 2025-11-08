@@ -203,3 +203,42 @@ export interface TaskResourceWithDetails extends TaskResource {
   homework: Homework;
   teacher: Profile;
 }
+
+// ============================================
+// BADGE (Proof-of-Learning NFT Credentials)
+// ============================================
+export interface Badge {
+  id: string;
+  student_id: string;
+  homework_id: string;
+  teacher_id: string;
+
+  // Badge metadata
+  badge_title: string;
+  badge_description?: string;
+  badge_image_url: string;
+  skill_verified: string;
+
+  // Simulated blockchain data
+  token_id: string;
+  blockchain_network: string;
+  minted_at: string;
+
+  // Task details
+  task_title: string;
+  review_score: number;
+  teacher_name?: string;
+
+  created_at: string;
+
+  // Joined data
+  student?: Profile;
+  teacher?: Profile;
+  homework?: Homework;
+}
+
+export interface BadgeWithDetails extends Badge {
+  student: Profile;
+  teacher: Profile;
+  homework: Homework;
+}

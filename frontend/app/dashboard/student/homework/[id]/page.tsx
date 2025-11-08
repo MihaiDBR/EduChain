@@ -13,12 +13,15 @@ import {
   createSubmission,
   getSubmissions,
   getTaskResources,
+  getReviews,
+  getBadges,
 } from '@/lib/supabase/queries';
 import type { Homework, EnrollmentWithDetails, Submission, TaskResource } from '@/lib/types/database';
 import { Upload, FileText, CheckCircle, MessageCircle, Loader2, ArrowLeft, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { MintBadgeModal } from '@/components/MintBadgeModal';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -38,6 +41,10 @@ export default function StudentHomeworkPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [uploading, setUploading] = useState(false);
   const [taskResources, setTaskResources] = useState<TaskResource[]>([]);
+
+  // Badge modal state
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [canMintBadge, setCanMintBadge] = useState(false);
 
   useEffect(() => {
     if (!isConnected) {
@@ -103,6 +110,48 @@ export default function StudentHomeworkPage() {
           homeworkId,
         });
         setTaskResources(resourcesData);
+
+        // Check if student can mint a badge (5-star review + no badge yet)
+        console.log('🎖️ Checking badge eligibility...');
+        console.log('Enrollment status:', enrollmentsData[0]?.status);
+
+        if (enrollmentsData.length > 0 && enrollmentsData[0].status === 'reviewed') {
+          console.log('✅ Enrollment is reviewed, checking for 5-star review...');
+
+          // Check if student has 5-star review
+          const reviews = await getReviews({
+            homeworkId,
+            studentId: profileData.id
+          });
+          console.log('📝 Reviews found:', reviews.length, reviews);
+
+          const fiveStarReview = reviews.find(r => r.stars === 5);
+          console.log('⭐ 5-star review:', fiveStarReview);
+
+          if (fiveStarReview) {
+            console.log('✅ Has 5-star review! Checking for existing badges...');
+
+            // Check if badge already minted
+            const existingBadges = await getBadges({
+              studentId: profileData.id,
+              homeworkId,
+            });
+            console.log('🏅 Existing badges:', existingBadges.length, existingBadges);
+
+            if (existingBadges.length === 0) {
+              // Can mint badge!
+              console.log('🎉 CAN MINT BADGE! Showing modal...');
+              setCanMintBadge(true);
+              setShowBadgeModal(true);
+            } else {
+              console.log('⚠️ Badge already minted');
+            }
+          } else {
+            console.log('⚠️ No 5-star review found');
+          }
+        } else {
+          console.log('⚠️ Enrollment not reviewed yet or no enrollments');
+        }
       } catch (error: any) {
         console.error('Error loading data:', error);
         alert('Error loading task details');
@@ -200,6 +249,28 @@ export default function StudentHomeworkPage() {
         await supabase.storage.from('submissions').remove([fileName]);
         alert(`❌ Failed to save submission to database.\n\nFile: ${uploadedFile.name}\nError: ${dbError.message || 'Unknown error'}\n\nPlease try again or contact your teacher.`);
         return;
+      }
+
+      // Mark enrollment as completed (so teacher can see it)
+      if (enrollment.status === 'active') {
+        console.log('📝 Updating enrollment status to completed...', enrollment.id);
+        const { data: updatedEnrollment, error: updateError } = await supabase
+          .from('enrollments')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', enrollment.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('❌ Failed to update enrollment status:', updateError);
+        } else {
+          console.log('✅ Enrollment updated successfully:', updatedEnrollment);
+          // Update local enrollment state with the actual data from DB
+          setEnrollment({ ...enrollment, status: updatedEnrollment.status, completed_at: updatedEnrollment.completed_at });
+        }
       }
 
       // Reload submissions
@@ -466,6 +537,25 @@ export default function StudentHomeworkPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Badge Minting Modal */}
+      {canMintBadge && homework && profile && (
+        <MintBadgeModal
+          open={showBadgeModal}
+          onOpenChange={setShowBadgeModal}
+          studentId={profile.id}
+          studentName={profile.username || 'Student'}
+          homeworkId={homeworkId}
+          homeworkTitle={homework.title}
+          teacherId={homework.teacher_id}
+          teacherName={homework.teacher?.username || 'Teacher'}
+          onMinted={() => {
+            // After minting, hide modal and prevent showing again
+            setCanMintBadge(false);
+            setShowBadgeModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

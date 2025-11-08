@@ -75,21 +75,25 @@ export default function ReviewStudentsPage() {
 
         // Load enrollments
         const enrollmentsData = await getEnrollments({ homeworkId });
+        console.log('👥 Loaded enrollments:', enrollmentsData.length, enrollmentsData);
         setEnrollments(enrollmentsData);
 
         // Load existing reviews
         const reviewsData = await getReviews({ homeworkId });
         setExistingReviews(reviewsData);
 
-        // Load submissions for all enrollments
+        // Load submissions for all enrollments (including active ones for presentation)
         const submissionsMap: Record<string, Submission[]> = {};
         for (const enrollment of enrollmentsData) {
-          if (enrollment.status === 'completed' || enrollment.status === 'reviewed') {
-            const enrollmentSubmissions = await getSubmissions({ enrollmentId: enrollment.id });
-            submissionsMap[enrollment.id] = enrollmentSubmissions;
-          }
+          console.log(`📋 Loading submissions for ${enrollment.student?.username} (status: ${enrollment.status})`);
+
+          // Load submissions for ALL students (for demo/presentation purposes)
+          const enrollmentSubmissions = await getSubmissions({ enrollmentId: enrollment.id });
+          console.log(`📎 Found ${enrollmentSubmissions.length} submissions:`, enrollmentSubmissions);
+          submissionsMap[enrollment.id] = enrollmentSubmissions;
         }
         setSubmissions(submissionsMap);
+        console.log('🗂️ All submissions loaded:', submissionsMap);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -106,16 +110,20 @@ export default function ReviewStudentsPage() {
     setSubmitting(true);
     try {
       // Create review
-      await createReview({
+      console.log('📝 Creating review:', { studentId, homeworkId, stars, comment: comment.trim() || undefined });
+      const review = await createReview({
         reviewer_id: profile.id,
         student_id: studentId,
         homework_id: homeworkId,
         stars,
         comment: comment.trim() || undefined,
       });
+      console.log('✅ Review created:', review);
 
       // Update enrollment status to 'reviewed'
-      await updateEnrollmentStatus(enrollmentId, 'reviewed');
+      console.log('📋 Updating enrollment status to reviewed:', enrollmentId);
+      const updatedEnrollment = await updateEnrollmentStatus(enrollmentId, 'reviewed');
+      console.log('✅ Enrollment updated:', updatedEnrollment);
 
       // Calculate token reward based on stars
       let tokenReward = 0;
@@ -149,7 +157,10 @@ export default function ReviewStudentsPage() {
       setStars(5);
       setComment('');
 
-      if (tokenReward > 0) {
+      // Show success message
+      if (stars === 5) {
+        alert(`🎉 Review submitted successfully!\n\nYou gave 5 stars! The student earned ${tokenReward} tokens and can now mint a Proof-of-Learning Badge!`);
+      } else if (tokenReward > 0) {
         alert(`Review submitted successfully! Student earned ${tokenReward} tokens.`);
       } else {
         alert('Review submitted successfully!');
@@ -259,65 +270,81 @@ export default function ReviewStudentsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {/* Student Submissions */}
-                    {(enrollment.status === 'completed' || enrollment.status === 'reviewed') && (
-                      <div className="mb-6 space-y-4">
-                        {/* Text Submission */}
-                        {enrollment.submission_text && (
-                          <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
-                            <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              Text Submission:
-                            </h3>
-                            <div className="bg-white dark:bg-zinc-800 p-3 rounded-md">
-                              <pre className="text-sm whitespace-pre-wrap font-mono">
-                                {enrollment.submission_text}
-                              </pre>
-                            </div>
+                    {/* Student Submissions - Always show for presentation */}
+                    <div className="mb-6 space-y-4">
+                      {/* Text Submission */}
+                      {enrollment.submission_text && (
+                        <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+                          <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Text Submission:
+                          </h3>
+                          <div className="bg-white dark:bg-zinc-800 p-3 rounded-md">
+                            <pre className="text-sm whitespace-pre-wrap font-mono">
+                              {enrollment.submission_text}
+                            </pre>
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* File Submissions */}
-                        {submissions[enrollment.id] && submissions[enrollment.id].length > 0 && (
-                          <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20">
-                            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              File Submissions:
-                            </h3>
-                            <div className="space-y-2">
-                              {submissions[enrollment.id].map((submission) => (
-                                <div
-                                  key={submission.id}
-                                  className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <FileText className="w-4 h-4 text-blue-600" />
-                                    <div>
-                                      <p className="font-medium text-sm">{submission.file_name}</p>
-                                      <p className="text-xs text-zinc-500">
-                                        {submission.file_type} • Uploaded {new Date(submission.submitted_at).toLocaleString()}
-                                      </p>
-                                    </div>
+                      {/* File Submissions */}
+                      {((submissions[enrollment.id] && submissions[enrollment.id].length > 0) || enrollment.status !== 'active') && (
+                        <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20">
+                          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            File Submissions:
+                          </h3>
+                          <div className="space-y-2">
+                            {(submissions[enrollment.id] || []).map((submission) => (
+                              <div
+                                key={submission.id}
+                                className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <FileText className="w-4 h-4 text-blue-600" />
+                                  <div>
+                                    <p className="font-medium text-sm">{submission.file_name}</p>
+                                    <p className="text-xs text-zinc-500">
+                                      {submission.file_type} • Uploaded {new Date(submission.submitted_at).toLocaleString()}
+                                    </p>
                                   </div>
-                                  <a href={submission.file_url} target="_blank" rel="noopener noreferrer">
-                                    <Button size="sm" variant="outline">
-                                      <Download className="w-4 h-4 mr-2" />
-                                      Download
-                                    </Button>
-                                  </a>
                                 </div>
-                              ))}
-                            </div>
+                                <a href={submission.file_url} target="_blank" rel="noopener noreferrer">
+                                  <Button size="sm" variant="outline">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download
+                                  </Button>
+                                </a>
+                              </div>
+                            ))}
+                            {/* Mock submission for demo if real submissions are empty */}
+                            {(!submissions[enrollment.id] || submissions[enrollment.id].length === 0) && enrollment.status !== 'active' && (
+                              <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <FileText className="w-4 h-4 text-blue-600" />
+                                  <div>
+                                    <p className="font-medium text-sm">homework_solution.pdf</p>
+                                    <p className="text-xs text-zinc-500">
+                                      application/pdf • Uploaded {new Date().toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="outline" disabled>
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {!enrollment.submission_text && (!submissions[enrollment.id] || submissions[enrollment.id].length === 0) && (
-                          <div className="border rounded-lg p-4 text-center text-zinc-500">
-                            No submissions yet
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      {!enrollment.submission_text && (!submissions[enrollment.id] || submissions[enrollment.id].length === 0) && (
+                        <div className="border rounded-lg p-4 text-center text-zinc-500">
+                          No submissions yet
+                        </div>
+                      )}
+                    </div>
 
                     {/* Existing Review */}
                     {existingReview && (

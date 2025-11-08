@@ -223,9 +223,53 @@ Students have full control:
 - Delete all personal data
 - Track who accessed their data
 
+### 🏅 Proof-of-Learning Badges (NFT Credentials)
+
+**Concept**: Transform top achievements into verifiable credentials on the blockchain.
+
+When a student completes a task and receives **5 stars** from their teacher, they don't just earn tokens - they unlock the ability to **mint a Proof-of-Learning Badge**.
+
+**How It Works** (Hackathon Implementation):
+
+1. **Achievement Trigger**: Student gets 5-star review → System displays: "🎉 Congratulations! You're eligible to mint your Python Expert Badge!"
+
+2. **Mint Experience**:
+   - Big prominent button: `[✨ MINT YOUR BADGE]`
+   - On click: Beautiful loading animation with blockchain-themed messaging:
+     - "⛓️ Anchoring proof to blockchain..."
+     - "🎨 Generating badge artwork..."
+     - "✅ Confirming transaction..."
+
+3. **Badge Display**: After "minting", the badge appears:
+   - In student's profile
+   - As a visual certificate (SVG/PNG)
+   - With metadata: task title, date, teacher signature, skill verified
+
+**The Pitch** (Why This Matters):
+- **For Students**: Portable proof of skills that can be displayed in Web3 profiles/portfolios
+- **For Employers**: Verifiable credentials showing actual skill completion, not just claims
+- **For Education**: Transforms grades into blockchain-backed credentials
+- **For Web3**: Real-world utility of NFTs beyond speculation
+
+**Technical Implementation** (Hackathon Version):
+- Frontend-only with realistic UX/UI
+- Pre-designed badge templates
+- Simulated blockchain interaction (animations + messaging)
+- Database stores badge records
+- Uses Web3 terminology: "Mint", "NFT", "Soulbound Token (SBT)", "On-Chain Proof"
+
+**Future Enhancement** (Post-Hackathon):
+- Real smart contract integration (ERC-721 or ERC-1155)
+- On-chain metadata storage (IPFS)
+- True Soulbound Tokens (non-transferable)
+- Cross-platform verification
+
+> 💡 **Hackathon Strategy**: This feature demonstrates understanding of Web3 utility while staying within time constraints. It's about the *concept* and *UX*, not full blockchain implementation.
+
 ## 📈 Future Enhancements
 
-- [ ] NFT certificates for completed tasks
+- [x] **NFT certificates for completed tasks** (Proof-of-Learning Badges - Hackathon Version ✅)
+- [ ] Full blockchain NFT minting (real smart contracts)
 - [ ] DAO governance for platform decisions
 - [ ] Advanced AI tutoring integration
 - [ ] Multi-chain support

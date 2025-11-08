@@ -10,11 +10,13 @@ import type {
   TokenTransaction,
   Submission,
   TaskResource,
+  Badge,
   HomeworkWithTeacher,
   QuestionWithDetails,
   EnrollmentWithDetails,
   SubmissionWithDetails,
   TaskResourceWithDetails,
+  BadgeWithDetails,
 } from '@/lib/types/database';
 
 const supabase = createSupabaseBrowserClient();
@@ -699,5 +701,143 @@ export async function deleteTaskResource(resourceId: string) {
     .eq('id', resourceId);
 
   if (error) throw error;
+}
+
+// ============================================
+// BADGE QUERIES (Proof-of-Learning NFTs)
+// ============================================
+
+export async function getBadges(filters?: {
+  studentId?: string;
+  teacherId?: string;
+  homeworkId?: string;
+  skillVerified?: string;
+}) {
+  try {
+    let query = supabase
+      .from('badges')
+      .select(`
+        *,
+        student:profiles!badges_student_id_fkey(*),
+        teacher:profiles!badges_teacher_id_fkey(*),
+        homework:homeworks(*)
+      `)
+      .order('minted_at', { ascending: false });
+
+    if (filters?.studentId) {
+      query = query.eq('student_id', filters.studentId);
+    }
+    if (filters?.teacherId) {
+      query = query.eq('teacher_id', filters.teacherId);
+    }
+    if (filters?.homeworkId) {
+      query = query.eq('homework_id', filters.homeworkId);
+    }
+    if (filters?.skillVerified) {
+      query = query.eq('skill_verified', filters.skillVerified);
+    }
+
+    const { data, error } = await query;
+
+    // If table doesn't exist yet, return empty array
+    if (error && error.code === '42P01') {
+      console.warn('badges table does not exist yet. Please run migration 007.');
+      return [];
+    }
+
+    if (error) throw error;
+    return data as BadgeWithDetails[];
+  } catch (error) {
+    console.error('Error fetching badges:', error);
+    return [];
+  }
+}
+
+export async function getBadge(badgeId: string) {
+  const { data, error } = await supabase
+    .from('badges')
+    .select(`
+      *,
+      student:profiles!badges_student_id_fkey(*),
+      teacher:profiles!badges_teacher_id_fkey(*),
+      homework:homeworks(*)
+    `)
+    .eq('id', badgeId)
+    .single();
+
+  if (error) throw error;
+  return data as BadgeWithDetails;
+}
+
+export async function createBadge(badge: {
+  student_id: string;
+  homework_id: string;
+  teacher_id: string;
+  badge_title: string;
+  badge_description?: string;
+  badge_image_url: string;
+  skill_verified: string;
+  token_id: string;
+  task_title: string;
+  teacher_name?: string;
+}) {
+  const badgeData = {
+    ...badge,
+    review_score: 5, // Badges are only for 5-star reviews
+    blockchain_network: 'EduChain Testnet',
+  };
+
+  const { data, error } = await supabase
+    .from('badges')
+    .insert([badgeData])
+    .select(`
+      *,
+      student:profiles!badges_student_id_fkey(*),
+      teacher:profiles!badges_teacher_id_fkey(*),
+      homework:homeworks(*)
+    `)
+    .single();
+
+  if (error) {
+    console.error('Error creating badge:', error);
+    throw error;
+  }
+
+  return data as BadgeWithDetails;
+}
+
+export async function deleteBadge(badgeId: string) {
+  const { error } = await supabase
+    .from('badges')
+    .delete()
+    .eq('id', badgeId);
+
+  if (error) throw error;
+}
+
+// Generate a unique token ID for badges
+export function generateBadgeTokenId(): string {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000);
+  return `#${timestamp}${random}`;
+}
+
+// Get badge stats for a student
+export async function getBadgeStats(studentId: string) {
+  const badges = await getBadges({ studentId });
+
+  const stats = {
+    total: badges.length,
+    bySkill: {} as Record<string, number>,
+    recentBadges: badges.slice(0, 5), // Last 5 badges
+  };
+
+  // Count badges by skill
+  badges.forEach(badge => {
+    const skill = badge.skill_verified;
+    stats.bySkill[skill] = (stats.bySkill[skill] || 0) + 1;
+  });
+
+  return stats;
 }
 
