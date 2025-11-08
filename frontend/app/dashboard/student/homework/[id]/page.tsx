@@ -208,12 +208,12 @@ export default function StudentHomeworkPage() {
   const isCompleted = enrollment.status === 'completed';
   const isReviewed = enrollment.status === 'reviewed';
 
-  // Calculate time until deadline
+  // Calculate time until deadline (if deadline exists)
   const now = new Date();
-  const deadline = new Date(homework.deadline);
-  const hoursUntilDeadline = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
-  const isDeadlineClose = hoursUntilDeadline > 0 && hoursUntilDeadline <= 24;
-  const isDeadlinePassed = hoursUntilDeadline <= 0;
+  const deadline = homework.deadline ? new Date(homework.deadline) : null;
+  const hoursUntilDeadline = deadline ? (deadline.getTime() - now.getTime()) / (1000 * 60 * 60) : Infinity;
+  const isDeadlineClose = deadline && hoursUntilDeadline > 0 && hoursUntilDeadline <= 24;
+  const isDeadlinePassed = deadline && hoursUntilDeadline <= 0;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -235,16 +235,18 @@ export default function StudentHomeworkPage() {
               <p className="text-sm text-zinc-500 mt-2">
                 Teacher: {homework.teacher?.username || 'Unknown'}
               </p>
-              <div className="flex items-center gap-2 mt-2">
-                <Clock className="w-4 h-4 text-zinc-500" />
-                <p className={`text-sm font-semibold ${
-                  isDeadlinePassed ? 'text-red-600' : isDeadlineClose ? 'text-orange-600' : 'text-blue-600'
-                }`}>
-                  Deadline: {deadline.toLocaleString()}
-                  {isDeadlinePassed && ' (Passed)'}
-                  {isDeadlineClose && !isDeadlinePassed && ' (Less than 24h left!)'}
-                </p>
-              </div>
+              {deadline && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Clock className="w-4 h-4 text-zinc-500" />
+                  <p className={`text-sm font-semibold ${
+                    isDeadlinePassed ? 'text-red-600' : isDeadlineClose ? 'text-orange-600' : 'text-blue-600'
+                  }`}>
+                    Deadline: {deadline.toLocaleString()}
+                    {isDeadlinePassed && ' (Passed)'}
+                    {isDeadlineClose && !isDeadlinePassed && ' (Less than 24h left!)'}
+                  </p>
+                </div>
+              )}
             </div>
             <Badge
               variant={

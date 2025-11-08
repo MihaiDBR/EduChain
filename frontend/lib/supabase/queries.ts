@@ -147,7 +147,10 @@ export async function createHomework(homework: {
     `)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error creating homework:', error);
+    throw error;
+  }
   return data as HomeworkWithTeacher;
 }
 
