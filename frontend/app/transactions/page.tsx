@@ -136,6 +136,7 @@ export default function TransactionsPage() {
                     spent: 'bg-red-100 text-red-800',
                     initial: 'bg-blue-100 text-blue-800',
                     mentor_reward: 'bg-purple-100 text-purple-800',
+                    penalty: 'bg-red-100 text-red-800',
                   };
 
                   return (

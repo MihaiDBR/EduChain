@@ -23,8 +23,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
-    bio: '',
-    role: 'student' as 'teacher' | 'student' | 'both',
+    role: 'student' as 'teacher' | 'student',
   });
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export default function SettingsPage() {
           setProfile(data);
           setFormData({
             username: data.username || '',
-            bio: data.bio || '',
             role: data.role || 'student',
           });
         }
@@ -130,17 +128,6 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Bio</label>
-              <textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Tell us about yourself..."
-                rows={4}
-                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium mb-2">Role</label>
               <select
                 value={formData.role}
@@ -149,7 +136,6 @@ export default function SettingsPage() {
               >
                 <option value="student">Student</option>
                 <option value="teacher">Teacher</option>
-                <option value="both">Both (Student & Teacher)</option>
               </select>
             </div>
 
@@ -162,7 +148,6 @@ export default function SettingsPage() {
                 onClick={() => {
                   setFormData({
                     username: profile.username || '',
-                    bio: profile.bio || '',
                     role: profile.role || 'student',
                   });
                 }}
@@ -186,28 +171,28 @@ export default function SettingsPage() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{profile.reputation_score}</div>
-                <div className="text-sm text-zinc-600">Reputation</div>
+                <div className="text-2xl font-bold text-blue-600">{profile.rating.toFixed(1)}</div>
+                <div className="text-sm text-zinc-600">Rating</div>
               </div>
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{profile.total_tasks_completed}</div>
-                <div className="text-sm text-zinc-600">Tasks Completed</div>
+                <div className="text-2xl font-bold text-green-600">{profile.completed_count}</div>
+                <div className="text-sm text-zinc-600">Completed</div>
               </div>
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{profile.total_tasks_created}</div>
-                <div className="text-sm text-zinc-600">Tasks Created</div>
+                <div className="text-2xl font-bold text-purple-600">{profile.total_reviews}</div>
+                <div className="text-sm text-zinc-600">Total Reviews</div>
               </div>
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{profile.total_tasks_attempted}</div>
-                <div className="text-sm text-zinc-600">Tasks Attempted</div>
+                <div className="text-2xl font-bold text-orange-600">{profile.token_balance}</div>
+                <div className="text-sm text-zinc-600">Tokens</div>
               </div>
             </div>
 
             <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                <strong>How your reputation grows:</strong> Your reputation increases through active participation
-                (creating or completing tasks), receiving positive ratings, and maintaining a high success rate.
-                It cannot be purchased or transferred - it's earned through genuine engagement.
+                <strong>How your rating grows:</strong> Your rating increases through active participation,
+                receiving positive reviews, and helping other students. Earn tokens by answering questions
+                and completing tasks.
               </p>
             </div>
           </CardContent>

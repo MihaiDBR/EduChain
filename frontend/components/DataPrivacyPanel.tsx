@@ -33,17 +33,17 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
         .single();
 
       const { data: submissions } = await supabase
-        .from('task_submissions')
+        .from('submissions')
         .select('*')
         .eq('student_id', userId);
 
-      const { data: tasks } = await supabase
-        .from('tasks')
+      const { data: homeworks } = await supabase
+        .from('homeworks')
         .select('*')
         .eq('teacher_id', userId);
 
       // Display data in a modal or new page
-      console.log('User Data:', { profile, submissions, tasks });
+      console.log('User Data:', { profile, submissions, homeworks });
       alert('Your data has been loaded. Check the console for details. In production, this would show a detailed view.');
     } catch (error) {
       console.error('Error viewing data:', error);
@@ -69,30 +69,36 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
         .single();
 
       const { data: submissions } = await supabase
-        .from('task_submissions')
-        .select('*, task:tasks(*)')
+        .from('submissions')
+        .select('*, homework:homeworks(*)')
         .eq('student_id', userId);
 
-      const { data: tasks } = await supabase
-        .from('tasks')
+      const { data: homeworks } = await supabase
+        .from('homeworks')
         .select('*')
         .eq('teacher_id', userId);
 
-      const { data: ratings } = await supabase
-        .from('task_ratings')
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('student_id', userId);
+
+      const { data: reviews } = await supabase
+        .from('reviews')
         .select('*')
         .eq('student_id', userId);
 
       const { data: transactions } = await supabase
-        .from('staking_transactions')
+        .from('token_transactions')
         .select('*')
         .eq('user_id', userId);
 
       const exportData = {
         profile,
         submissions,
-        tasks,
-        ratings,
+        homeworks,
+        enrollments,
+        reviews,
         transactions,
         exported_at: new Date().toISOString(),
       };
