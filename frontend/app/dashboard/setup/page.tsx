@@ -62,9 +62,16 @@ export default function SetupPage() {
 
       // Redirect to dashboard
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating profile:', error);
-      alert('Error creating profile. Please try again.');
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      const errorMessage = error?.message || 'Unknown error occurred';
+      alert(`Error creating profile: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
