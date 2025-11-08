@@ -137,14 +137,28 @@ export default function HomeworkDetailPage() {
     try {
       // Upload file to Supabase Storage
       const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${profile.id}/${homework.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${profile.id}/${homework.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('task-resources')
         .upload(fileName, uploadedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        let errorMessage = 'Failed to upload file to storage.';
+
+        if (uploadError.message.includes('row-level security')) {
+          errorMessage = 'Storage access denied. Please check your permissions.';
+        } else if (uploadError.message.includes('size')) {
+          errorMessage = 'File is too large. Maximum file size is 50MB.';
+        } else if (uploadError.message) {
+          errorMessage = `Upload failed: ${uploadError.message}`;
+        }
+
+        alert(`❌ ${errorMessage}\n\nFile: ${uploadedFile.name}`);
+        return;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase
@@ -153,13 +167,21 @@ export default function HomeworkDetailPage() {
         .getPublicUrl(fileName);
 
       // Create task resource record
-      await createTaskResource({
-        homework_id: homework.id,
-        teacher_id: profile.id,
-        file_url: publicUrl,
-        file_name: uploadedFile.name,
-        file_type: uploadedFile.type,
-      });
+      try {
+        await createTaskResource({
+          homework_id: homework.id,
+          teacher_id: profile.id,
+          file_url: publicUrl,
+          file_name: uploadedFile.name,
+          file_type: uploadedFile.type,
+        });
+      } catch (dbError: any) {
+        console.error('Database error:', dbError);
+        // If DB insert fails, try to clean up the uploaded file
+        await supabase.storage.from('task-resources').remove([fileName]);
+        alert(`❌ Failed to save file metadata to database.\n\nFile: ${uploadedFile.name}\nError: ${dbError.message || 'Unknown error'}`);
+        return;
+      }
 
       // Reload task resources
       const resourcesData = await getTaskResources({ homeworkId: homework.id });
@@ -170,10 +192,10 @@ export default function HomeworkDetailPage() {
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      alert('Resource file uploaded successfully!');
+      alert(`✅ Resource file uploaded successfully!\n\n${uploadedFile.name}`);
     } catch (error: any) {
-      console.error('Error uploading file:', error);
-      alert('Error uploading file. Please try again.');
+      console.error('Unexpected error uploading file:', error);
+      alert(`❌ Unexpected error uploading file.\n\nFile: ${uploadedFile.name}\nPlease try again or contact support if the problem persists.`);
     } finally {
       setUploading(false);
     }
