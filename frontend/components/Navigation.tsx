@@ -1,15 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 import { cn } from '@/lib/utils';
-import { BookOpen, Home, Settings, User, Users } from 'lucide-react';
+import { BookOpen, Home, Settings, User, Users, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -18,6 +21,11 @@ export function Navigation() {
       { name: 'Settings', href: '/settings', icon: Settings },
     ] : []),
   ];
+
+  const handleLogout = () => {
+    disconnect();
+    router.push('/');
+  };
 
   return (
     <nav className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -63,6 +71,17 @@ export function Navigation() {
                 largeScreen: 'full',
               }}
             />
+            {isConnected && (
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>

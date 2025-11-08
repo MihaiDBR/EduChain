@@ -70,17 +70,24 @@ export default function StudentDashboard() {
 
         // Load available homeworks
         const homeworksData = await getAvailableHomeworks();
+        console.log('Available homeworks:', homeworksData);
         setAvailableHomeworks(homeworksData);
 
         // Load my enrollments
         const enrollmentsData = await getEnrollments({ studentId: profileData.id });
+        console.log('My enrollments:', enrollmentsData);
         setMyEnrollments(enrollmentsData);
 
         // Load my questions
         const questionsData = await getQuestions({ studentId: profileData.id });
         setMyQuestions(questionsData);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading data:', error);
+        console.error('Error details:', {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+        });
       } finally {
         setLoading(false);
       }

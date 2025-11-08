@@ -480,9 +480,21 @@ export async function getAvailableHomeworks() {
       teacher:profiles!homeworks_teacher_id_fkey(*)
     `)
     .eq('is_active', true)
-    .filter('current_students', 'lt', 'max_students')
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data as HomeworkWithTeacher[];
+  if (error) {
+    console.error('Error fetching homeworks:', error);
+    throw error;
+  }
+
+  console.log('Raw homeworks from DB:', data);
+
+  // Filter out homeworks that are full (current_students >= max_students)
+  const availableHomeworks = (data as HomeworkWithTeacher[]).filter(
+    hw => hw.current_students < hw.max_students
+  );
+
+  console.log('Filtered available homeworks:', availableHomeworks);
+
+  return availableHomeworks;
 }
