@@ -37,6 +37,9 @@ export default function StudentQuestionsPage() {
       return;
     }
 
+    let questionsChannel: any;
+    let answersChannel: any;
+
     async function loadData() {
       if (!address) return;
 
@@ -66,6 +69,49 @@ export default function StudentQuestionsPage() {
         });
 
         setMyQuestions(questionsData);
+
+        // Setup real-time subscription for questions
+        questionsChannel = supabase
+          .channel(`questions:${homeworkId}:${profileData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'questions',
+              filter: `homework_id=eq.${homeworkId}`,
+            },
+            async () => {
+              // Reload questions when any change happens
+              const updatedQuestions = await getQuestions({
+                homeworkId,
+                studentId: profileData.id,
+              });
+              setMyQuestions(updatedQuestions);
+            }
+          )
+          .subscribe();
+
+        // Setup real-time subscription for answers
+        answersChannel = supabase
+          .channel(`answers:${homeworkId}:${profileData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'answers',
+            },
+            async () => {
+              // Reload questions to get new answers
+              const updatedQuestions = await getQuestions({
+                homeworkId,
+                studentId: profileData.id,
+              });
+              setMyQuestions(updatedQuestions);
+            }
+          )
+          .subscribe();
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -74,6 +120,12 @@ export default function StudentQuestionsPage() {
     }
 
     loadData();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      if (questionsChannel) supabase.removeChannel(questionsChannel);
+      if (answersChannel) supabase.removeChannel(answersChannel);
+    };
   }, [address, isConnected, router, homeworkId]);
 
   async function handleSubmitQuestion() {
@@ -120,7 +172,7 @@ export default function StudentQuestionsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">My Questions</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Homework: <strong>{homework.title}</strong>
+            Task: <strong>{homework.title}</strong>
           </p>
           <p className="text-sm text-zinc-500">
             Teacher: {homework.teacher?.username || 'Unknown'}
@@ -158,7 +210,7 @@ export default function StudentQuestionsPage() {
           <CardHeader>
             <CardTitle>Ask a Question</CardTitle>
             <CardDescription>
-              Your teacher or a mentor will answer your question
+              Your teacher or a mentor will answer your question about this task
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -166,7 +218,7 @@ export default function StudentQuestionsPage() {
               <Textarea
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
-                placeholder="What would you like to know about this homework?"
+                placeholder="What would you like to know about this task?"
                 rows={4}
                 className="w-full"
               />

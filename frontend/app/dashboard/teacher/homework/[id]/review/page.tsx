@@ -63,7 +63,7 @@ export default function ReviewStudentsPage() {
         // Load homework
         const homeworkData = await getHomework(homeworkId);
         if (homeworkData.teacher_id !== profileData.id) {
-          alert('You can only review students on your own homeworks!');
+          alert('You can only review students on your own tasks!');
           router.push('/dashboard/teacher');
           return;
         }
@@ -118,7 +118,7 @@ export default function ReviewStudentsPage() {
     } catch (error: any) {
       console.error('Error submitting review:', error);
       if (error.message?.includes('duplicate')) {
-        alert('You have already reviewed this student for this homework!');
+        alert('You have already reviewed this student for this task!');
       } else {
         alert('Error submitting review. Please try again.');
       }
@@ -143,7 +143,7 @@ export default function ReviewStudentsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Review Students</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Give feedback to students enrolled in: <strong>{homework.title}</strong>
+            Give feedback to students enrolled in this task: <strong>{homework.title}</strong>
           </p>
         </div>
 

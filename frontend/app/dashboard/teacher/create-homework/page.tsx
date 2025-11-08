@@ -58,7 +58,7 @@ export default function CreateHomeworkPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!profile || profile.token_balance < 1) {
-      alert('You need at least 1 token to create a homework!');
+      alert('You need at least 1 token to create a task!');
       return;
     }
 
@@ -80,11 +80,11 @@ export default function CreateHomeworkPage() {
         description: `Created homework: ${formData.title}`,
       });
 
-      alert('Homework created successfully! ✅');
+      alert('Task created successfully! ✅');
       router.push('/dashboard/teacher');
     } catch (error) {
-      console.error('Error creating homework:', error);
-      alert('Error creating homework. Please try again.');
+      console.error('Error creating task:', error);
+      alert('Error creating task. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,10 +101,10 @@ export default function CreateHomeworkPage() {
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-6 h-6 text-blue-600" />
-              <CardTitle className="text-3xl">Create New Homework</CardTitle>
+              <CardTitle className="text-3xl">Create New Task</CardTitle>
             </div>
             <CardDescription>
-              Publish a homework for students to enroll and ask questions
+              Publish a task for students to enroll and ask questions
             </CardDescription>
           </CardHeader>
 
@@ -119,7 +119,7 @@ export default function CreateHomeworkPage() {
                 <span className="text-2xl font-bold text-blue-600">{profile.token_balance}</span>
               </div>
               <p className="text-sm text-blue-900 dark:text-blue-100 mt-2">
-                Creating a homework costs <strong>1 token</strong>
+                Creating a task costs <strong>1 token</strong>
               </p>
             </div>
 
@@ -129,7 +129,7 @@ export default function CreateHomeworkPage() {
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-red-600" />
                   <p className="text-red-900 dark:text-red-100">
-                    <strong>Insufficient tokens!</strong> You need at least 1 token to create a homework.
+                    <strong>Insufficient tokens!</strong> You need at least 1 token to create a task.
                   </p>
                 </div>
               </div>
@@ -137,7 +137,7 @@ export default function CreateHomeworkPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Label htmlFor="title">Homework Title *</Label>
+                <Label htmlFor="title">Task Title *</Label>
                 <Input
                   id="title"
                   type="text"
@@ -156,7 +156,7 @@ export default function CreateHomeworkPage() {
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe the homework, what students will learn, requirements, etc."
+                  placeholder="Describe the task, what students will learn, requirements, etc."
                   rows={6}
                   className="mt-2"
                   disabled={profile.token_balance < 1}
@@ -177,7 +177,7 @@ export default function CreateHomeworkPage() {
                   disabled={profile.token_balance < 1}
                 />
                 <p className="text-sm text-zinc-500 mt-2">
-                  Maximum number of students who can enroll in this homework
+                  Maximum number of students who can enroll in this task
                 </p>
               </div>
 
@@ -204,7 +204,7 @@ export default function CreateHomeworkPage() {
                   ) : (
                     <>
                       <Coins className="w-4 h-4 mr-2" />
-                      Create Homework (1 token)
+                      Create Task (1 token)
                     </>
                   )}
                 </Button>

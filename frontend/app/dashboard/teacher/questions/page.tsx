@@ -30,6 +30,9 @@ export default function TeacherQuestionsPage() {
       return;
     }
 
+    let questionsChannel: any;
+    let answersChannel: any;
+
     async function loadData() {
       if (!address) return;
 
@@ -52,22 +55,59 @@ export default function TeacherQuestionsPage() {
         const homeworksData = await getHomeworks({ teacherId: profileData.id });
         const homeworkIds = homeworksData.map(hw => hw.id);
 
-        // Load all questions on teacher's homeworks
-        const allQuestions: QuestionWithDetails[] = [];
-        for (const hwId of homeworkIds) {
-          const hwQuestions = await getQuestions({ homeworkId: hwId });
-          allQuestions.push(...hwQuestions);
-        }
-
-        // Sort by: unanswered first, then by date
-        allQuestions.sort((a, b) => {
-          if (a.is_answered === b.is_answered) {
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        // Function to reload all questions
+        const reloadQuestions = async () => {
+          const allQuestions: QuestionWithDetails[] = [];
+          for (const hwId of homeworkIds) {
+            const hwQuestions = await getQuestions({ homeworkId: hwId });
+            allQuestions.push(...hwQuestions);
           }
-          return a.is_answered ? 1 : -1;
-        });
 
-        setQuestions(allQuestions);
+          // Sort by: unanswered first, then by date
+          allQuestions.sort((a, b) => {
+            if (a.is_answered === b.is_answered) {
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }
+            return a.is_answered ? 1 : -1;
+          });
+
+          setQuestions(allQuestions);
+        };
+
+        // Load all questions on teacher's homeworks
+        await reloadQuestions();
+
+        // Setup real-time subscription for questions
+        questionsChannel = supabase
+          .channel(`teacher_questions:${profileData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'questions',
+            },
+            async () => {
+              await reloadQuestions();
+            }
+          )
+          .subscribe();
+
+        // Setup real-time subscription for answers
+        answersChannel = supabase
+          .channel(`teacher_answers:${profileData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'answers',
+            },
+            async () => {
+              await reloadQuestions();
+            }
+          )
+          .subscribe();
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -76,6 +116,12 @@ export default function TeacherQuestionsPage() {
     }
 
     loadData();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      if (questionsChannel) supabase.removeChannel(questionsChannel);
+      if (answersChannel) supabase.removeChannel(answersChannel);
+    };
   }, [address, isConnected, router]);
 
   async function handleAnswer(questionId: string) {

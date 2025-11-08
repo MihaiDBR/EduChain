@@ -92,13 +92,13 @@ export default function TeacherDashboard() {
         <div>
           <h1 className="text-4xl font-bold mb-2">Teacher Dashboard</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Manage homeworks, answer questions, and review students
+            Manage tasks, answer questions, and review students
           </p>
         </div>
         <Link href="/dashboard/teacher/create-homework">
           <Button size="lg" disabled={profile.token_balance < 1}>
             <Plus className="w-5 h-5 mr-2" />
-            Create Homework
+            Create Task
           </Button>
         </Link>
       </div>
@@ -110,8 +110,8 @@ export default function TeacherDashboard() {
             <div className="flex items-center gap-2">
               <Coins className="w-5 h-5 text-orange-600" />
               <p className="text-orange-900 dark:text-orange-100">
-                <strong>Insufficient tokens!</strong> You need at least 1 token to create a homework.
-                Each homework costs 1 token.
+                <strong>Insufficient tokens!</strong> You need at least 1 token to create a task.
+                Each task costs 1 token.
               </p>
             </div>
           </CardContent>
@@ -133,7 +133,7 @@ export default function TeacherDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Homeworks</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
             <BookOpen className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -151,7 +151,7 @@ export default function TeacherDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalStudents}</div>
-            <p className="text-xs text-zinc-500">enrolled across all homeworks</p>
+            <p className="text-xs text-zinc-500">enrolled across all tasks</p>
           </CardContent>
         </Card>
 
@@ -201,17 +201,17 @@ export default function TeacherDashboard() {
         </CardContent>
       </Card>
 
-      {/* Homeworks List */}
+      {/* Tasks List */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Your Homeworks</h2>
+        <h2 className="text-2xl font-bold mb-4">Your Tasks</h2>
         {homeworks.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <BookOpen className="w-12 h-12 text-zinc-400 mb-4" />
-              <p className="text-zinc-600 mb-4">You haven't created any homeworks yet</p>
+              <p className="text-zinc-600 mb-4">You haven't created any tasks yet</p>
               <Link href="/dashboard/teacher/create-homework">
                 <Button disabled={profile.token_balance < 1}>
-                  Create Your First Homework
+                  Create Your First Task
                 </Button>
               </Link>
             </CardContent>

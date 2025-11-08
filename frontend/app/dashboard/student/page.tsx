@@ -114,7 +114,7 @@ export default function StudentDashboard() {
     } catch (error: any) {
       console.error('Error enrolling:', error);
       if (error.message?.includes('duplicate')) {
-        alert('You are already enrolled in this homework!');
+        alert('You are already enrolled in this task!');
       } else {
         alert('Error enrolling. Please try again.');
       }
@@ -139,7 +139,7 @@ export default function StudentDashboard() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Student Dashboard</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Browse homeworks, ask questions, and learn!
+            Browse tasks, ask questions, and learn!
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export default function StudentDashboard() {
                     </p>
                     <p className="text-sm text-purple-700 dark:text-purple-200">
                       You have {profile.rating.toFixed(1)}+ stars and {profile.completed_count}+
-                      completed homeworks
+                      completed tasks
                     </p>
                   </div>
                 </div>
@@ -180,7 +180,7 @@ export default function StudentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{myEnrollments.length}</div>
-              <p className="text-xs text-zinc-500">active homeworks</p>
+              <p className="text-xs text-zinc-500">active tasks</p>
             </CardContent>
           </Card>
 
@@ -191,7 +191,7 @@ export default function StudentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{profile.completed_count}</div>
-              <p className="text-xs text-zinc-500">homeworks finished</p>
+              <p className="text-xs text-zinc-500">tasks finished</p>
             </CardContent>
           </Card>
 
@@ -295,14 +295,14 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Available Homeworks */}
+        {/* Available Tasks */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Available Homeworks</h2>
+          <h2 className="text-2xl font-bold mb-4">Available Tasks</h2>
           {availableHomeworks.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <BookOpen className="w-12 h-12 text-zinc-400 mb-4" />
-                <p className="text-zinc-600">No homeworks available at the moment</p>
+                <p className="text-zinc-600">No tasks available at the moment</p>
               </CardContent>
             </Card>
           ) : (
