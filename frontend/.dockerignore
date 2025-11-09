@@ -1,0 +1,9 @@
+# Reduce Docker build context size
+node_modules
+.next
+.git
+.gitignore
+npm-debug.log*
+Dockerfile
+README.md
+
