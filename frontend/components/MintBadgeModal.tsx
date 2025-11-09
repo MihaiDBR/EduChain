@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { BadgeTemplate, BADGE_CONFIGS, detectSkillFromTitle, formatBadgeDate } from '@/components/BadgeTemplate';
 import { createBadge, generateBadgeTokenId } from '@/lib/supabase/queries';
 import { Loader2, Sparkles, Check } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 interface MintBadgeModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export function MintBadgeModal({
   teacherName,
   onMinted,
 }: MintBadgeModalProps) {
+  const { addToast } = useToast();
   const [mintingPhase, setMintingPhase] = useState<MintingPhase>('idle');
   const [mintedBadge, setMintedBadge] = useState<any>(null);
 
@@ -82,7 +84,7 @@ export function MintBadgeModal({
       }
     } catch (error) {
       console.error('Error minting badge:', error);
-      alert('Failed to mint badge. Please try again.');
+      addToast('❌ Failed to mint badge. Please try again.', 'error');
       setMintingPhase('idle');
     }
   }

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { createVote, updateVote, deleteVote } from '@/lib/supabase/queries';
 import { ThumbsUp, ThumbsDown, Users, TrendingUp, Star, Search } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -28,6 +29,7 @@ interface UserWithVote {
 export default function DAOPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [users, setUsers] = useState<UserWithVote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +144,7 @@ export default function DAOPage() {
       }
     } catch (error) {
       console.error('Error voting:', error);
-      alert('Error submitting vote. Please try again.');
+      addToast('❌ Error submitting vote. Please try again.', 'error');
     }
   }
 

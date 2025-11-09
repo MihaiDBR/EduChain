@@ -23,17 +23,20 @@ import {
   updateVote,
 } from '@/lib/supabase/queries';
 import type { Homework, EnrollmentWithDetails, Submission, TaskResource } from '@/lib/types/database';
-import { Upload, FileText, CheckCircle, MessageCircle, Loader2, ArrowLeft, Download, X, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Upload, FileText, CheckCircle, MessageCircle, Loader2, ArrowLeft, Download, X, ThumbsUp, ThumbsDown, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { MintBadgeModal } from '@/components/MintBadgeModal';
+import { useToast } from '@/components/ui/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function StudentHomeworkPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const params = useParams();
   const homeworkId = params.id as string;
 
@@ -61,6 +64,9 @@ export default function StudentHomeworkPage() {
   // DAO Voting state
   const [teacherVote, setTeacherVote] = useState<'upvote' | 'downvote' | null>(null);
   const [votingLoading, setVotingLoading] = useState(false);
+
+  // Confirm dialog state
+  const [showUnsubmitDialog, setShowUnsubmitDialog] = useState(false);
 
   useEffect(() => {
     if (!isConnected) {
@@ -97,7 +103,7 @@ export default function StudentHomeworkPage() {
         });
 
         if (enrollmentsData.length === 0) {
-          alert('You are not enrolled in this task');
+          addToast('⚠️ You are not enrolled in this task', 'warning');
           router.push('/dashboard/student');
           return;
         }
@@ -196,7 +202,7 @@ export default function StudentHomeworkPage() {
         }
       } catch (error: any) {
         console.error('Error loading data:', error);
-        alert('Error loading task details');
+        addToast('❌ Error loading task details', 'error');
         router.push('/dashboard/student');
       } finally {
         setLoading(false);
@@ -204,7 +210,7 @@ export default function StudentHomeworkPage() {
     }
 
     loadData();
-  }, [address, isConnected, router, homeworkId]);
+  }, [address, isConnected, router, homeworkId, addToast]);
 
   async function handleSubmitSolution() {
     if (!enrollment || !submissionText.trim()) return;
@@ -230,10 +236,10 @@ export default function StudentHomeworkPage() {
       });
 
       setEnrollment(enrollmentsData[0]);
-      alert('Solution submitted successfully! ✅ Your teacher will review it soon.');
+      addToast('✅ Solution submitted successfully! Your teacher will review it soon.', 'success');
     } catch (error: any) {
       console.error('Error submitting solution:', error);
-      alert('Error submitting solution. Please try again.');
+      addToast('❌ Error submitting solution. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +271,7 @@ export default function StudentHomeworkPage() {
           errorMessage = `Upload failed: ${uploadError.message}`;
         }
 
-        alert(`❌ ${errorMessage}\n\nFile: ${uploadedFile.name}\n\nPlease try again or contact your teacher if the problem persists.`);
+        addToast(`❌ ${errorMessage}`, 'error');
         return;
       }
 
@@ -289,7 +295,7 @@ export default function StudentHomeworkPage() {
         console.error('Database error:', dbError);
         // If DB insert fails, try to clean up the uploaded file
         await supabase.storage.from('submissions').remove([fileName]);
-        alert(`❌ Failed to save submission to database.\n\nFile: ${uploadedFile.name}\nError: ${dbError.message || 'Unknown error'}\n\nPlease try again or contact your teacher.`);
+        addToast(`❌ Failed to save submission to database: ${dbError.message || 'Unknown error'}`, 'error');
         return;
       }
 
@@ -326,10 +332,10 @@ export default function StudentHomeworkPage() {
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      alert(`✅ File uploaded successfully!\n\n${uploadedFile.name}\n\nYour submission is now complete. You can withdraw it before the teacher reviews it using the "Withdraw Submission" button above.`);
+      addToast(`✅ File uploaded successfully! ${uploadedFile.name}`, 'success');
     } catch (error: any) {
       console.error('Unexpected error uploading file:', error);
-      alert(`❌ Unexpected error uploading file.\n\nFile: ${uploadedFile.name}\nPlease try again or contact your teacher if the problem persists.`);
+      addToast(`❌ Unexpected error uploading file: ${uploadedFile.name}`, 'error');
     } finally {
       setUploading(false);
     }
@@ -337,12 +343,11 @@ export default function StudentHomeworkPage() {
 
   async function handleUnsubmit() {
     if (!enrollment || !submissions.length) return;
+    setShowUnsubmitDialog(true);
+  }
 
-    const confirmed = confirm(
-      'Are you sure you want to withdraw your submission? This will delete all your uploaded files and you can submit again.'
-    );
-
-    if (!confirmed) return;
+  async function confirmUnsubmit() {
+    if (!profile || !enrollment) return;
 
     setUploading(true);
     try {
@@ -350,8 +355,8 @@ export default function StudentHomeworkPage() {
       for (const submission of submissions) {
         // Delete from storage
         const fileName = submission.file_url.split('/').pop();
-        if (fileName) {
-          const storagePath = `${profile?.id}/${enrollment.id}/${fileName}`;
+        if (fileName && profile.id) {
+          const storagePath = `${profile.id}/${enrollment.id}/${fileName}`;
           await supabase.storage.from('submissions').remove([storagePath]);
         }
 
@@ -372,10 +377,10 @@ export default function StudentHomeworkPage() {
       }
 
       setSubmissions([]);
-      alert('✅ Submission withdrawn successfully! You can now submit again.');
+      addToast('✅ Submission withdrawn successfully! You can now submit again.', 'success');
     } catch (error) {
       console.error('Error withdrawing submission:', error);
-      alert('❌ Error withdrawing submission. Please try again.');
+      addToast('❌ Error withdrawing submission. Please try again.', 'error');
     } finally {
       setUploading(false);
     }
@@ -395,10 +400,10 @@ export default function StudentHomeworkPage() {
       });
 
       setHasReviewedTeacher(true);
-      alert(`✅ Review submitted! You gave ${teacherReviewStars} star${teacherReviewStars !== 1 ? 's' : ''} to your teacher.`);
+      addToast(`✅ Review submitted! You gave ${teacherReviewStars} star${teacherReviewStars !== 1 ? 's' : ''} to your teacher.`, 'success');
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('❌ Error submitting review. Please try again.');
+      addToast('❌ Error submitting review. Please try again.', 'error');
     } finally {
       setSubmittingReview(false);
     }
@@ -455,10 +460,10 @@ export default function StudentHomeworkPage() {
       }
 
       setTeacherVote(voteType);
-      alert(`✅ Vote submitted! You ${voteType === 'upvote' ? '👍 liked' : '👎 disliked'} this teacher.`);
+      addToast(`✅ Vote submitted! You ${voteType === 'upvote' ? '👍 liked' : '👎 disliked'} this teacher.`, 'success');
     } catch (error) {
       console.error('Error voting:', error);
-      alert('❌ Error submitting vote. Please try again.');
+      addToast('❌ Error submitting vote. Please try again.', 'error');
     } finally {
       setVotingLoading(false);
     }
@@ -989,6 +994,18 @@ export default function StudentHomeworkPage() {
           }}
         />
       )}
+
+      {/* Unsubmit Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showUnsubmitDialog}
+        onClose={() => setShowUnsubmitDialog(false)}
+        onConfirm={confirmUnsubmit}
+        title="⚠️ Withdraw Submission?"
+        message="Are you sure you want to withdraw your submission? This will delete all your uploaded files and you can submit again."
+        confirmText="Withdraw"
+        cancelText="Cancel"
+        variant="warning"
+      />
     </div>
   );
 }

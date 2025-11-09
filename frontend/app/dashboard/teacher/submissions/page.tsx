@@ -11,12 +11,14 @@ import type { SubmissionWithDetails } from '@/lib/types/database';
 import { FileText, Download, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function TeacherSubmissionsPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,10 +94,10 @@ export default function TeacherSubmissionsPage() {
       }
 
       setSubmissions(allSubmissions);
-      alert('Submission marked as reviewed! ✅');
+      addToast('✅ Submission marked as reviewed!', 'success');
     } catch (error) {
       console.error('Error marking as reviewed:', error);
-      alert('Error marking as reviewed. Please try again.');
+      addToast('❌ Error marking as reviewed. Please try again.', 'error');
     } finally {
       setReviewingId(null);
     }

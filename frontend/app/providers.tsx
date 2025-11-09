@@ -6,6 +6,7 @@ import { RainbowKitProvider, Theme, lightTheme, darkTheme } from '@rainbow-me/ra
 import { wagmiConfig } from '@/lib/wagmi';
 import React from 'react';
 import merge from 'lodash.merge';
+import { ToastProvider } from '@/components/ui/toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -146,12 +147,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
+                  <ToastProvider>
+
         <RainbowKitProvider
           theme={isDark ? customDarkTheme : customLightTheme}
           modalSize="compact"
         >
-          {children}
+            {children}
         </RainbowKitProvider>
+                  </ToastProvider>
+
       </QueryClientProvider>
     </WagmiProvider>
   );

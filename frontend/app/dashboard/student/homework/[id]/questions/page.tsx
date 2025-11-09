@@ -15,12 +15,14 @@ import {
 import type { Homework, QuestionWithDetails } from '@/lib/types/database';
 import { MessageCircle, Send, Loader2, CheckCircle } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function StudentQuestionsPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const params = useParams();
   const homeworkId = params.id as string;
 
@@ -147,10 +149,10 @@ export default function StudentQuestionsPage() {
 
       setMyQuestions(questionsData);
       setQuestionText('');
-      alert('Question submitted successfully! ✅');
+      addToast('✅ Question submitted successfully!', 'success');
     } catch (error) {
       console.error('Error submitting question:', error);
-      alert('Error submitting question. Please try again.');
+      addToast('❌ Error submitting question. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { checkMentorEligibility, upgradToMentor } from '@/lib/supabase/queries';
 import { Trophy, Award, Star, CheckCircle, Coins, Loader2 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function BecomeMentorPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
@@ -66,11 +68,11 @@ export default function BecomeMentorPage() {
     setUpgrading(true);
     try {
       await upgradToMentor(profile.id);
-      alert('Congratulations! You are now a Mentor! 🎉');
+      addToast('🎉 Congratulations! You are now a Mentor!', 'success');
       router.push('/dashboard/student');
     } catch (error: any) {
       console.error('Error upgrading to mentor:', error);
-      alert(error.message || 'Error upgrading to mentor. Please try again.');
+      addToast(error.message || '❌ Error upgrading to mentor. Please try again.', 'error');
     } finally {
       setUpgrading(false);
     }

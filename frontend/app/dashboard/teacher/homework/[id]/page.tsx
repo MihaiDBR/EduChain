@@ -12,6 +12,8 @@ import type { HomeworkWithTeacher, EnrollmentWithDetails, TaskResource } from '@
 import { BookOpen, Users, ArrowLeft, Settings as SettingsIcon, Upload, FileText, Download, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -19,6 +21,7 @@ export default function HomeworkDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const { addToast } = useToast();
   const [homework, setHomework] = useState<HomeworkWithTeacher | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,9 @@ export default function HomeworkDetailPage() {
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteTaskDialog, setShowDeleteTaskDialog] = useState(false);
+  const [showDeleteResourceDialog, setShowDeleteResourceDialog] = useState(false);
+  const [resourceToDelete, setResourceToDelete] = useState<{id: string, url: string} | null>(null);
 
   useEffect(() => {
     if (!isConnected) {
@@ -58,7 +64,7 @@ export default function HomeworkDetailPage() {
 
         // Verify ownership
         if (homeworkData.teacher_id !== profileData.id) {
-          alert('You do not have access to this task');
+          addToast('⚠️ You do not have access to this task', 'warning');
           router.push('/dashboard/teacher');
           return;
         }
@@ -74,7 +80,7 @@ export default function HomeworkDetailPage() {
         setTaskResources(resourcesData);
       } catch (error: any) {
         console.error('Error loading task:', error);
-        alert('Error loading task details');
+        addToast('❌ Error loading task details', 'error');
         router.push('/dashboard/teacher');
       } finally {
         setLoading(false);
@@ -82,7 +88,7 @@ export default function HomeworkDetailPage() {
     }
 
     loadData();
-  }, [address, isConnected, params.id, router]);
+  }, [address, isConnected, params.id, router, addToast]);
 
   async function toggleActive() {
     if (!homework) return;
@@ -91,9 +97,10 @@ export default function HomeworkDetailPage() {
     try {
       await updateHomework(homework.id, { is_active: !homework.is_active });
       setHomework({ ...homework, is_active: !homework.is_active });
+      addToast(`✅ Task ${!homework.is_active ? 'activated' : 'deactivated'} successfully`, 'success');
     } catch (error) {
       console.error('Error toggling task status:', error);
-      alert('Error updating task status');
+      addToast('❌ Error updating task status', 'error');
     } finally {
       setToggling(false);
     }
@@ -101,10 +108,10 @@ export default function HomeworkDetailPage() {
 
   async function handleDeleteTask() {
     if (!homework) return;
+    setShowDeleteTaskDialog(true);
+  }
 
-    if (!confirm('Are you sure you want to delete this task? This action cannot be undone. All enrollments, submissions, and resources will be deleted.')) {
-      return;
-    }
+  async function confirmDeleteTask() {
 
     setDeleting(true);
     try {
@@ -118,13 +125,13 @@ export default function HomeworkDetailPage() {
       }
 
       // Delete the homework (cascade will delete enrollments, submissions, etc.)
-      await deleteHomework(homework.id);
+      await deleteHomework(homework!.id);
 
-      alert('Task deleted successfully!');
+      addToast('✅ Task deleted successfully!', 'success');
       router.push('/dashboard/teacher');
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert('Error deleting task. Please try again.');
+      addToast('❌ Error deleting task. Please try again.', 'error');
     } finally {
       setDeleting(false);
     }
@@ -163,7 +170,7 @@ export default function HomeworkDetailPage() {
           errorMessage = `Upload failed: ${uploadError.message}`;
         }
 
-        alert(`❌ ${errorMessage}\n\nFile: ${uploadedFile.name}`);
+        addToast(`❌ ${errorMessage}`, 'error');
         return;
       }
 
@@ -201,7 +208,7 @@ export default function HomeworkDetailPage() {
         });
         // If DB insert fails, try to clean up the uploaded file
         await supabase.storage.from('task-resources').remove([fileName]);
-        alert(`❌ Failed to save file metadata to database.\n\nFile: ${uploadedFile.name}\nError: ${dbError.message || 'Unknown error'}`);
+        addToast(`❌ Failed to save file metadata to database: ${dbError.message || 'Unknown error'}`, 'error');
         return;
       }
 
@@ -216,21 +223,26 @@ export default function HomeworkDetailPage() {
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      alert(`✅ Resource file uploaded successfully!\n\n${uploadedFile.name}`);
+      addToast(`✅ Resource file uploaded successfully! ${uploadedFile.name}`, 'success');
     } catch (error: any) {
       console.error('❌ Unexpected error uploading file:', error);
-      alert(`❌ Unexpected error uploading file.\n\nFile: ${uploadedFile.name}\nPlease try again or contact support if the problem persists.`);
+      addToast(`❌ Unexpected error uploading file: ${uploadedFile.name}`, 'error');
     } finally {
       setUploading(false);
     }
   }
 
   async function handleDeleteResource(resourceId: string, fileUrl: string) {
-    if (!confirm('Are you sure you want to delete this resource?')) return;
+    setResourceToDelete({id: resourceId, url: fileUrl});
+    setShowDeleteResourceDialog(true);
+  }
+
+  async function confirmDeleteResource() {
+    if (!resourceToDelete) return;
 
     try {
       // Extract file path from URL
-      const urlParts = fileUrl.split('/task-resources/');
+      const urlParts = resourceToDelete.url.split('/task-resources/');
       if (urlParts.length > 1) {
         const filePath = urlParts[1];
 
@@ -242,16 +254,18 @@ export default function HomeworkDetailPage() {
       }
 
       // Delete from database
-      await deleteTaskResource(resourceId);
+      await deleteTaskResource(resourceToDelete.id);
 
       // Reload task resources
       const resourcesData = await getTaskResources({ homeworkId: homework!.id });
       setTaskResources(resourcesData);
 
-      alert('Resource deleted successfully!');
+      addToast('✅ Resource deleted successfully!', 'success');
     } catch (error: any) {
       console.error('Error deleting resource:', error);
-      alert('Error deleting resource. Please try again.');
+      addToast('❌ Error deleting resource. Please try again.', 'error');
+    } finally {
+      setResourceToDelete(null);
     }
   }
 
@@ -498,6 +512,35 @@ export default function HomeworkDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Task Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteTaskDialog}
+        onClose={() => setShowDeleteTaskDialog(false)}
+        onConfirm={confirmDeleteTask}
+        title="⚠️ Delete This Task?"
+        message="Are you sure you want to delete this task? This action cannot be undone. All enrollments, submissions, and resources will be deleted."
+        confirmText="Delete Task"
+        cancelText="Cancel"
+        variant="danger"
+        requiresTyping={true}
+        typingText="DELETE"
+      />
+
+      {/* Delete Resource Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteResourceDialog}
+        onClose={() => {
+          setShowDeleteResourceDialog(false);
+          setResourceToDelete(null);
+        }}
+        onConfirm={confirmDeleteResource}
+        title="⚠️ Delete This Resource?"
+        message="Are you sure you want to delete this resource file?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="warning"
+      />
     </div>
   );
 }

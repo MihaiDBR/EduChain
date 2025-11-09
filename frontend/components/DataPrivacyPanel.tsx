@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, Trash2, Eye, Shield, Info } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -14,8 +16,10 @@ interface DataPrivacyPanelProps {
 }
 
 export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   async function handleViewData() {
     setLoading(true);
@@ -44,10 +48,10 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
 
       // Display data in a modal or new page
       console.log('User Data:', { profile, submissions, homeworks });
-      alert('Your data has been loaded. Check the console for details. In production, this would show a detailed view.');
+      addToast('Your data has been loaded. Check the console for details. In production, this would show a detailed view.', 'info');
     } catch (error) {
       console.error('Error viewing data:', error);
-      alert('Error loading your data. Please try again.');
+      addToast('Error loading your data. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -115,32 +119,20 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      addToast('✅ Your data has been exported successfully!', 'success');
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Error exporting your data. Please try again.');
+      addToast('Error exporting your data. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDeleteData() {
-    const confirmed = confirm(
-      'Are you sure you want to delete all your data? This action cannot be undone. Your account will be permanently deleted.'
-    );
+    setShowDeleteDialog(true);
+  }
 
-    if (!confirmed) return;
-
-    const doubleConfirm = confirm(
-      'This is your final warning. All your tasks, submissions, and profile will be permanently deleted. Type "DELETE" in the next prompt to confirm.'
-    );
-
-    if (!doubleConfirm) return;
-
-    const finalConfirm = prompt('Type DELETE to confirm:');
-    if (finalConfirm !== 'DELETE') {
-      alert('Deletion cancelled.');
-      return;
-    }
+  async function confirmDeleteData() {
 
     setLoading(true);
     try {
@@ -152,11 +144,11 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
       // Delete user data (RLS policies will handle cascade)
       await supabase.from('profiles').delete().eq('id', userId);
 
-      alert('Your data has been deleted. You will be logged out.');
+      addToast('✅ Your data has been deleted. You will be logged out.', 'success');
       // In production, handle logout and redirect
     } catch (error) {
       console.error('Error deleting data:', error);
-      alert('Error deleting your data. Please contact support.');
+      addToast('❌ Error deleting your data. Please contact support.', 'error');
     } finally {
       setLoading(false);
     }
@@ -302,6 +294,20 @@ export function DataPrivacyPanel({ userId }: DataPrivacyPanelProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDeleteData}
+        title="⚠️ Delete All Your Data?"
+        message="This action cannot be undone. All your tasks, submissions, and profile will be permanently deleted."
+        confirmText="Delete Everything"
+        cancelText="Cancel"
+        variant="danger"
+        requiresTyping={true}
+        typingText="DELETE"
+      />
     </div>
   );
 }

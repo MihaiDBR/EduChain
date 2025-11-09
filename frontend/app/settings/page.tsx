@@ -13,11 +13,13 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { User, Settings as SettingsIcon } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function SettingsPage() {
   const { address } = useAccount();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,10 +62,10 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await updateProfile(profile.id, formData);
-      alert('Profile updated successfully!');
+      addToast('Profile updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Error updating profile. Please try again.');
+      addToast('Error updating profile. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

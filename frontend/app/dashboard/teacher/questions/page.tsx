@@ -11,12 +11,14 @@ import { getHomeworks, getQuestions, createAnswer } from '@/lib/supabase/queries
 import type { Homework, QuestionWithDetails } from '@/lib/types/database';
 import { MessageCircle, CheckCircle, Loader2, Send } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function TeacherQuestionsPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [questions, setQuestions] = useState<QuestionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,10 +150,10 @@ export default function TeacherQuestionsPage() {
       setQuestions(updatedQuestions);
       setAnswerText('');
       setAnsweringId(null);
-      alert('Answer submitted successfully! ✅');
+      addToast('✅ Answer submitted successfully!', 'success');
     } catch (error) {
       console.error('Error submitting answer:', error);
-      alert('Error submitting answer. Please try again.');
+      addToast('❌ Error submitting answer. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

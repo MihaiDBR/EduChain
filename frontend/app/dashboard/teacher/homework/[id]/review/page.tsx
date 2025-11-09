@@ -19,12 +19,14 @@ import {
 import type { Homework, EnrollmentWithDetails, Review, Submission } from '@/lib/types/database';
 import { Star, Loader2, CheckCircle, FileText, Download } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function ReviewStudentsPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const params = useParams();
   const homeworkId = params.id as string;
 
@@ -66,7 +68,7 @@ export default function ReviewStudentsPage() {
         // Load homework
         const homeworkData = await getHomework(homeworkId);
         if (homeworkData.teacher_id !== profileData.id) {
-          alert('You can only review students on your own tasks!');
+          addToast('⚠️ You can only review students on your own tasks!', 'warning');
           router.push('/dashboard/teacher');
           return;
         }
@@ -159,18 +161,18 @@ export default function ReviewStudentsPage() {
 
       // Show success message
       if (stars === 5) {
-        alert(`🎉 Review submitted successfully!\n\nYou gave 5 stars! The student earned ${tokenReward} tokens and can now mint a Proof-of-Learning Badge!`);
+        addToast(`🎉 Review submitted successfully! You gave 5 stars! The student earned ${tokenReward} tokens and can now mint a Proof-of-Learning Badge!`, 'success');
       } else if (tokenReward > 0) {
-        alert(`Review submitted successfully! Student earned ${tokenReward} tokens.`);
+        addToast(`✅ Review submitted successfully! Student earned ${tokenReward} tokens.`, 'success');
       } else {
-        alert('Review submitted successfully!');
+        addToast('✅ Review submitted successfully!', 'success');
       }
     } catch (error: any) {
       console.error('Error submitting review:', error);
       if (error.message?.includes('duplicate')) {
-        alert('You have already reviewed this student for this task!');
+        addToast('⚠️ You have already reviewed this student for this task!', 'warning');
       } else {
-        alert('Error submitting review. Please try again.');
+        addToast('❌ Error submitting review. Please try again.', 'error');
       }
     } finally {
       setSubmitting(false);

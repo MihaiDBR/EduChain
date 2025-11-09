@@ -12,12 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { User, Loader2, Coins } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 const supabase = createSupabaseBrowserClient();
 
 export default function SetupPage() {
   const { address } = useAccount();
   const router = useRouter();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -89,7 +91,7 @@ export default function SetupPage() {
         hint: error?.hint,
       });
       const errorMessage = error?.message || 'Unknown error occurred';
-      alert(`Error creating profile: ${errorMessage}`);
+      addToast(`❌ Error creating profile: ${errorMessage}`, 'error');
     } finally {
       setLoading(false);
     }
