@@ -18,9 +18,12 @@ import {
   deleteSubmission,
   updateEnrollmentStatus,
   createReview,
+  getVotes,
+  createVote,
+  updateVote,
 } from '@/lib/supabase/queries';
 import type { Homework, EnrollmentWithDetails, Submission, TaskResource } from '@/lib/types/database';
-import { Upload, FileText, CheckCircle, MessageCircle, Loader2, ArrowLeft, Download, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle, MessageCircle, Loader2, ArrowLeft, Download, X, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -54,6 +57,10 @@ export default function StudentHomeworkPage() {
   const [teacherReviewComment, setTeacherReviewComment] = useState('');
   const [hasReviewedTeacher, setHasReviewedTeacher] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // DAO Voting state
+  const [teacherVote, setTeacherVote] = useState<'upvote' | 'downvote' | null>(null);
+  const [votingLoading, setVotingLoading] = useState(false);
 
   useEffect(() => {
     if (!isConnected) {
@@ -174,6 +181,17 @@ export default function StudentHomeworkPage() {
           );
           if (existingTeacherReview) {
             setHasReviewedTeacher(true);
+          }
+        }
+
+        // Check if student has already voted for the teacher (DAO voting)
+        if (homeworkData?.teacher_id && profileData?.id) {
+          const votes = await getVotes({
+            voterId: profileData.id,
+            votedForId: homeworkData.teacher_id,
+          });
+          if (votes.length > 0) {
+            setTeacherVote(votes[0].vote_type);
           }
         }
       } catch (error: any) {
@@ -383,6 +401,66 @@ export default function StudentHomeworkPage() {
       alert('❌ Error submitting review. Please try again.');
     } finally {
       setSubmittingReview(false);
+    }
+  }
+
+  async function handleVoteTeacher(voteType: 'upvote' | 'downvote') {
+    if (!profile || !homework?.teacher_id) return;
+
+    setVotingLoading(true);
+    try {
+      if (teacherVote) {
+        // Update existing vote
+        await updateVote(profile.id, homework.teacher_id, voteType);
+      } else {
+        // Create new vote
+        await createVote({
+          voter_id: profile.id,
+          voted_for_id: homework.teacher_id,
+          vote_type: voteType,
+          voter_role: 'student',
+        });
+      }
+
+      // Update profile vote counts in profiles table
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('upvotes, downvotes')
+        .eq('id', homework.teacher_id)
+        .single();
+
+      if (teacherProfile) {
+        const updates: any = {};
+
+        if (teacherVote === 'upvote' && voteType === 'downvote') {
+          // Changed from upvote to downvote
+          updates.upvotes = Math.max(0, teacherProfile.upvotes - 1);
+          updates.downvotes = teacherProfile.downvotes + 1;
+        } else if (teacherVote === 'downvote' && voteType === 'upvote') {
+          // Changed from downvote to upvote
+          updates.downvotes = Math.max(0, teacherProfile.downvotes - 1);
+          updates.upvotes = teacherProfile.upvotes + 1;
+        } else if (!teacherVote && voteType === 'upvote') {
+          // New upvote
+          updates.upvotes = teacherProfile.upvotes + 1;
+        } else if (!teacherVote && voteType === 'downvote') {
+          // New downvote
+          updates.downvotes = teacherProfile.downvotes + 1;
+        }
+
+        await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', homework.teacher_id);
+      }
+
+      setTeacherVote(voteType);
+      alert(`✅ Vote submitted! You ${voteType === 'upvote' ? '👍 liked' : '👎 disliked'} this teacher.`);
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('❌ Error submitting vote. Please try again.');
+    } finally {
+      setVotingLoading(false);
     }
   }
 
@@ -696,9 +774,72 @@ export default function StudentHomeworkPage() {
           </CardContent>
         </Card>
 
+        {/* Teacher's Review/Feedback - Show if task has been reviewed */}
+        {isReviewed && enrollment.review_score !== null && (
+          <Card className="border-primary mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                Teacher's Review
+              </CardTitle>
+              <CardDescription>
+                Feedback from your teacher on this assignment
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Stars Display */}
+                <div>
+                  <p className="text-sm font-semibold mb-3">Rating:</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-8 h-8 ${
+                            star <= enrollment.review_score!
+                              ? 'fill-primary text-primary'
+                              : 'fill-muted text-muted'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-3xl font-bold bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent ml-2">
+                      {enrollment.review_score}/5
+                    </span>
+                  </div>
+                </div>
+
+                {/* Teacher's Comment */}
+                {enrollment.review_comment && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Teacher's Comment:</p>
+                    <div className="p-4 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl border border-primary/20">
+                      <p className="text-base text-foreground whitespace-pre-wrap italic">
+                        "{enrollment.review_comment}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tokens Earned Info */}
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-900 dark:text-green-100">
+                    <strong>Tokens Earned:</strong> {
+                      enrollment.review_score === 5 ? '50 tokens' :
+                      enrollment.review_score === 4 ? '30 tokens' :
+                      enrollment.review_score === 3 ? '10 tokens' : '0 tokens'
+                    } for this assignment
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Rate Your Teacher */}
         {isReviewed && !hasReviewedTeacher && homework?.teacher && (
-          <Card className="border-purple-500">
+          <Card className="border-purple-500 mt-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-purple-600" />
@@ -761,12 +902,70 @@ export default function StudentHomeworkPage() {
         )}
 
         {hasReviewedTeacher && (
-          <Card className="border-green-500">
+          <Card className="border-green-500 mt-8">
             <CardContent className="py-6">
               <div className="flex items-center justify-center gap-2 text-green-600">
                 <CheckCircle className="w-5 h-5" />
                 <p className="font-semibold">You have already reviewed your teacher. Thank you for your feedback!</p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* DAO Voting - Like/Dislike Teacher (shown after review is complete) */}
+        {isReviewed && (
+          <Card className="border-blue-500 mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ThumbsUp className="w-5 h-5 text-blue-600" />
+                DAO Voting - Rate This Teacher
+              </CardTitle>
+              <CardDescription>
+                Help the community by voting on the teacher's quality. Your vote contributes to the teacher's DAO reputation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  onClick={() => handleVoteTeacher('upvote')}
+                  disabled={votingLoading || teacherVote === 'upvote'}
+                  variant={teacherVote === 'upvote' ? 'default' : 'outline'}
+                  size="lg"
+                  className={`flex items-center gap-2 ${teacherVote === 'upvote' ? 'bg-green-600 hover:bg-green-700' : 'border-green-600 text-green-600 hover:bg-green-50'}`}
+                >
+                  {votingLoading && teacherVote !== 'upvote' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <ThumbsUp className="w-5 h-5" />
+                  )}
+                  <span className="font-semibold">Like</span>
+                  {teacherVote === 'upvote' && <CheckCircle className="w-4 h-4" />}
+                </Button>
+
+                <Button
+                  onClick={() => handleVoteTeacher('downvote')}
+                  disabled={votingLoading || teacherVote === 'downvote'}
+                  variant={teacherVote === 'downvote' ? 'default' : 'outline'}
+                  size="lg"
+                  className={`flex items-center gap-2 ${teacherVote === 'downvote' ? 'bg-red-600 hover:bg-red-700' : 'border-red-600 text-red-600 hover:bg-red-50'}`}
+                >
+                  {votingLoading && teacherVote !== 'downvote' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <ThumbsDown className="w-5 h-5" />
+                  )}
+                  <span className="font-semibold">Dislike</span>
+                  {teacherVote === 'downvote' && <CheckCircle className="w-4 h-4" />}
+                </Button>
+              </div>
+
+              {teacherVote && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    You {teacherVote === 'upvote' ? '👍 liked' : '👎 disliked'} this teacher. You can change your vote anytime.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
