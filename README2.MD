@@ -2,7 +2,7 @@
 
 EduChain is our team’s winning project from SmartHack 2025, awarded **1st place** in the “Education in the Era of Technology” theme.  
 We designed a decentralised educational platform where teachers create tasks, students stake tokens to attempt them, and earn rewards when they succeed—all underpinned by transparent Web3 mechanics and AI-powered recommendations.
-It was built collaboratively by [@MihaiDBR](https://github.com/MihaiDBR) and teammates [@in-th3-l00p](https://github.com/in-th3-l00p), [@rarespapacioc12](https://github.com/rarespapacioc12), [@T0mike](https://github.com/T0mike), and [@laurentiumatica](https://github.com/laurentiumatica) .
+It was built collaboratively by [@Mihai Dobrin](https://github.com/MihaiDBR) and teammates [@Tisca Catalin](https://github.com/in-th3-l00p), [@Papacio Rares](https://github.com/rarespapacioc12), [@Toma Rares](https://github.com/T0mike), and [@Matica Laurentiu](https://github.com/laurentiumatica) .
 
 ## 🏆 Achievement  
 - **1st Place – SmartHack 2025**  
